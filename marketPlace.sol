@@ -5,11 +5,12 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
-contract MarketPlace {
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract MarketPlace is Ownable {
     //////////////////////////////////////////////////////////////////////////////////////////////////
     // State
     //////////////////////////////////////////////////////////////////////////////////////////////////
-
     IERC20 s_token; 
     IERC721 s_NFTs;
 
@@ -90,7 +91,7 @@ contract MarketPlace {
         }
     }
 
-    function cancelTrade(uint256 p_nftID) public  securityFrontRunning(p_nftID) {
+    function cancelSale(uint256 p_nftID) public  securityFrontRunning(p_nftID) {
         uint256 pos = s_refNFTs[p_nftID];
 
         require(
@@ -104,8 +105,6 @@ contract MarketPlace {
 
         s_NFTs.transferFrom(address(this), s_sales[pos].owner, p_nftID);
     }
-
-
 
     function buy(uint256 p_nftID) public  securityFrontRunning(p_nftID) {
         uint256 pos = s_refNFTs[p_nftID];
@@ -124,5 +123,10 @@ contract MarketPlace {
         s_NFTs.transferFrom(address(this), msg.sender, p_nftID);
     }
 
-
+    function getFees() public onlyOwner() {
+        require(
+            s_token.transfer(msg.sender, s_token.balanceOf(address(this))),
+            "Error"
+        );
+    }
 }

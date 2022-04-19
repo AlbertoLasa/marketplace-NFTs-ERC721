@@ -3,8 +3,6 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
-
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract MarketPlace is Ownable {
@@ -22,17 +20,12 @@ contract MarketPlace is Ownable {
 
     struct Sale {
         address owner;
-        uint256 nftID;
-        uint256 price;
         Status status;
+        uint256 price;
     }
 
     mapping(uint256 => Sale) public s_sales;
-    mapping(uint256 => uint256) s_refNFTs;
     mapping(uint256 => uint256) s_securty;
-
-    using Counters for Counters.Counter;
-    Counters.Counter s_counter;
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
     // Modifiers
@@ -64,58 +57,48 @@ contract MarketPlace is Ownable {
     //////////////////////////////////////////////////////////////////////////////////////////////////
 
     function openSale(uint256 p_nftID, uint256 p_price) public securityFrontRunning(p_nftID) {
-        if (s_refNFTs[p_nftID] == 0) {
+        if (s_sales[p_nftID].owner == address(0)) {
             s_NFTs.transferFrom(msg.sender, address(this), p_nftID);
 
-            s_counter.increment();
-            s_sales[s_counter.current()] = Sale(
+            s_sales[p_nftID] = Sale(
                 msg.sender,
-                p_nftID,
-                p_price,
-                Status.open
+                Status.open,
+                p_price
             );
-
-            s_refNFTs[p_nftID] = s_counter.current();
         } else {
-            uint256 pos = s_refNFTs[p_nftID];
-
             require(
-                msg.sender == s_sales[pos].owner,
-                "Not allowed"
+                msg.sender == s_sales[p_nftID].owner,
+                "Without permission"
             );
 
             s_NFTs.transferFrom(msg.sender, address(this), p_nftID);
 
-            s_sales[pos].status = Status.open;
-            s_sales[pos].price = p_price;
+            s_sales[p_nftID].status = Status.open;
+            s_sales[p_nftID].price = p_price;
         }
     }
 
-    function cancelSale(uint256 p_nftID) public  securityFrontRunning(p_nftID) {
-        uint256 pos = s_refNFTs[p_nftID];
-
+    function cancelSale(uint256 p_nftID) public securityFrontRunning(p_nftID) {
         require(
-            msg.sender == s_sales[pos].owner,
-            "Not allowed"
+            msg.sender == s_sales[p_nftID].owner,
+            "Without permission"
         );
 
-        require(s_sales[pos].status == Status.open, "Is not Open");
+        require(s_sales[p_nftID].status == Status.open, "Is not Open");
 
-        s_sales[pos].status = Status.cancelled;
+        s_sales[p_nftID].status = Status.cancelled;
 
-        s_NFTs.transferFrom(address(this), s_sales[pos].owner, p_nftID);
+        s_NFTs.transferFrom(address(this), s_sales[p_nftID].owner, p_nftID);
     }
 
     function buy(uint256 p_nftID) public  securityFrontRunning(p_nftID) {
-        uint256 pos = s_refNFTs[p_nftID];
+        require(s_sales[p_nftID].status == Status.open, "Is not Open");
 
-        require(s_sales[pos].status == Status.open, "Is not Open");
+        address oldOwner = s_sales[p_nftID].owner;
+        uint256 price = s_sales[p_nftID].price;
 
-        address oldOwner = s_sales[pos].owner;
-        uint256 price = s_sales[pos].price;
-
-        s_sales[pos].owner = msg.sender;
-        s_sales[pos].status = Status.executed;
+        s_sales[p_nftID].owner = msg.sender;
+        s_sales[p_nftID].status = Status.executed;
 
         require(s_token.transferFrom(msg.sender, oldOwner, price), "Error transfer token");
         require(s_token.transferFrom(msg.sender, address(this), (price / 100) * 3), "Error transfer token"); // fee 3%
@@ -123,7 +106,7 @@ contract MarketPlace is Ownable {
         s_NFTs.transferFrom(address(this), msg.sender, p_nftID);
     }
 
-    function getFees() public onlyOwner() {
+    function getFees() public onlyOwner {
         require(
             s_token.transfer(msg.sender, s_token.balanceOf(address(this))),
             "Error"

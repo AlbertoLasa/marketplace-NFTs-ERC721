@@ -91,11 +91,13 @@ contract MarketPlace is Ownable {
         s_NFTs.transferFrom(address(this), s_sales[p_nftID].owner, p_nftID);
     }
 
-    function buy(uint256 p_nftID) public  securityFrontRunning(p_nftID) {
+    function buy(uint256 p_nftID, uint256 p_price) public  securityFrontRunning(p_nftID) {
         require(s_sales[p_nftID].status == Status.open, "Is not Open");
 
         address oldOwner = s_sales[p_nftID].owner;
         uint256 price = s_sales[p_nftID].price;
+        
+        require(price == p_price, "Manipulated price");
 
         s_sales[p_nftID].owner = msg.sender;
         s_sales[p_nftID].status = Status.executed;

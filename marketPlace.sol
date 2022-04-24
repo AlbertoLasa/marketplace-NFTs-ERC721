@@ -111,7 +111,7 @@ contract MarketPlace is Ownable {
     function getFees() public onlyOwner {
         require(
             s_token.transfer(msg.sender, s_token.balanceOf(address(this))),
-            "Error"
+            "Error transfer total fees"
         );
     }
 }

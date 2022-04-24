@@ -34,7 +34,7 @@ contract MarketPlace is Ownable {
     modifier securityFrontRunning(uint256 p_nftID) {
         require(
             s_securty[p_nftID] == 0 ||
-            s_securty[p_nftID] > block.number,
+            s_securty[p_nftID] < block.number,
             "Error security"
         );
 

@@ -102,8 +102,8 @@ contract MarketPlace is Ownable {
         s_sales[p_nftID].owner = msg.sender;
         s_sales[p_nftID].status = Status.executed;
 
-        require(s_token.transferFrom(msg.sender, oldOwner, price), "Error transfer token");
-        require(s_token.transferFrom(msg.sender, address(this), (price / 100) * 3), "Error transfer token"); // fee 3%
+        require(s_token.transferFrom(msg.sender, oldOwner, price), "Error transfer token - price");
+        require(s_token.transferFrom(msg.sender, address(this), (price / 100) * 3), "Error transfer fee"); // fee 3%
 
         s_NFTs.transferFrom(address(this), msg.sender, p_nftID);
     }
